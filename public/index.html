@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>URL Shortener</title>
+</head>
+<body>
+    <div class="container">
+        <h1>URL Shortener</h1>
+        <form id="shorten-form">
+            <div>
+                <label for="url">Enter URL:</label>
+                <input type="url" id="url" name="url" required>
+            </div>
+
+            <div>
+                <label for="shorten-code">Custom Short URL (optional):</label>
+                <input type="text" id="shorten-code" name="shorten-code" required>
+            </div>
+
+            <button type="submit">Shorten</button>
+        </form>
+
+        <h2>Shortened URLs</h2>
+        <ul id="shortened-urls"></ul>
+    </div>
+
+    <script>
+
+        const fetchShortenedURLFromServer = async () => {
+            const response = await fetch("/links")
+            const links = await response.json();
+            
+            const list = document.getElementById("shortened-urls");
+            list.innerHTML = "";
+
+            for (const [shortCode, url] of Object.entries(links)) {
+                const li = document.createElement('li');
+                const truncatedURL = url.length >= 30 ? `${url.slice(0, 30)}...` : url
+                li.innerHTML = `<a href="/${shortCode}" target="_blank"> ${window.location.origin}/${shortCode}</a> - ${truncatedURL}`
+                list.appendChild(li)
+            }
+
+        }
+
+        document.getElementById('shorten-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(event.target); //this particular line stores all input forms name field as a key and it's value as value for e.g.: <input type="url" id="url" name="url" required> in this input field name="url" so url is stored as key and whatever the user inputs is then stored as value, so we can get its value using get method which is built in method in formData object
+            
+            const url = formData.get('url')
+            const shortCode = formData.get('shorten-code')
+
+            console.log(url, shortCode);
+
+            try {
+                const response = await fetch("/shorten", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json" },
+                    body: JSON.stringify({ url, shortCode })
+                });
+
+                if(response.ok) {
+                    await fetchShortenedURLFromServer();
+                    alert("Form Submitted successfully");
+                    event.target.reset();
+                }
+                else {
+                    const errorMessage = await response.text();
+                    alert(errorMessage)
+                }
+            } catch (error) {
+                console.log(error)
+            }
+
+        })
+        fetchShortenedURLFromServer();
+    </script>
+</body>
+</html>
